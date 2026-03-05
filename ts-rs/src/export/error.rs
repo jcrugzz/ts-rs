@@ -17,7 +17,7 @@ pub enum ExportError {
     #[error(
         "type name collision for \"{new_type}\" in {}: two different types generate different \
          content for the same file. Use #[ts(rename = \"...\")] or #[ts(export_to = \"...\")] \
-         to disambiguate.",
+         to disambiguate, or set TS_RS_AUTO_NAMESPACE=true to organize types by crate.",
         path.display()
     )]
     Collision {

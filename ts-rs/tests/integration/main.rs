@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use ts_rs::{Config, TS};
 
+mod auto_namespace;
 mod arrays;
 mod arrayvec;
 mod bound;

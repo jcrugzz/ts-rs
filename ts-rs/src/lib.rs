@@ -617,6 +617,12 @@ pub trait TS {
         None
     }
 
+    /// Returns the Cargo package name of the crate that defined this type.
+    /// Used for auto-namespacing when `TS_RS_AUTO_NAMESPACE` is enabled.
+    fn crate_name() -> Option<&'static str> {
+        None
+    }
+
     /// Returns the output path to where `T` should be exported.
     ///
     /// The output of this function depends on the environment variable `TS_RS_EXPORT_DIR`, which is
@@ -631,7 +637,9 @@ pub trait TS {
     /// If `T` cannot be exported (e.g because it's a primitive type), this function will return
     /// `None`.
     fn default_output_path() -> Option<PathBuf> {
-        Some(export::default_out_dir().join(<Self as crate::TS>::output_path()?))
+        let path = <Self as crate::TS>::output_path()?;
+        let path = export::maybe_namespace::<Self>(path);
+        Some(export::default_out_dir().join(path))
     }
 }
 
@@ -663,6 +671,7 @@ impl Dependency {
     /// `None`
     pub fn from_ty<T: TS + 'static + ?Sized>() -> Option<Self> {
         let output_path = <T as crate::TS>::output_path()?;
+        let output_path = export::maybe_namespace::<T>(output_path);
         Some(Dependency {
             type_id: TypeId::of::<T>(),
             ts_name: <T as crate::TS>::ident(),

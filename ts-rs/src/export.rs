@@ -85,11 +85,24 @@ mod recursive_export {
     }
 }
 
+/// When auto_namespace is enabled and crate_name is available, returns
+/// the path prefixed with `{crate_name}/`. Otherwise returns the path unchanged.
+pub(crate) fn maybe_namespace<T: TS + ?Sized>(cfg: &Config, path: PathBuf) -> PathBuf {
+    if cfg.auto_namespace() {
+        if let Some(crate_name) = <T as TS>::crate_name() {
+            let ns = crate_name.replace('-', "_");
+            return PathBuf::from(ns).join(path);
+        }
+    }
+    path
+}
+
 /// Export `T` to the file specified by the `#[ts(export_to = ..)]` attribute
 pub(crate) fn export_into<T: TS + ?Sized + 'static>(cfg: &Config) -> Result<(), ExportError> {
     let path = <T as crate::TS>::output_path()
         .ok_or_else(std::any::type_name::<T>)
         .map_err(ExportError::CannotBeExported)?;
+    let path = maybe_namespace::<T>(cfg, path);
     let path = cfg.export_dir.join(path);
 
     export_to::<T, _>(cfg, path::absolute(path)?)
@@ -345,6 +358,7 @@ fn generate_imports<T: TS + ?Sized + 'static>(
 ) -> Result<(), ExportError> {
     let path = <T as crate::TS>::output_path()
         .ok_or_else(std::any::type_name::<T>)
+        .map(|x| maybe_namespace::<T>(cfg, x))
         .map(|x| cfg.export_dir.join(x))
         .map_err(ExportError::CannotBeExported)?;
 

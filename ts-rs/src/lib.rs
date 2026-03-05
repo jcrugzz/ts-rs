@@ -389,6 +389,8 @@ pub trait TS {
 
     #[doc(hidden)]
     const IS_OPTION: bool = false;
+    #[doc(hidden)]
+    const IS_ENUM: bool = false;
 
     #[doc(hidden)]
     const IS_ENUM: bool = false;
@@ -447,6 +449,10 @@ pub trait TS {
     fn optional_inline_flattened(cfg: &Config) -> String {
         panic!("{} cannot be flattened", Self::name(cfg))
     }
+
+    /// Flatten an optional type declaration.
+    /// This function will panic if the type cannot be flattened.
+    fn optional_inline_flattened() -> String;
 
     /// Iterates over all dependency of this type.
     fn visit_dependencies(_: &mut impl TypeVisitor)
@@ -886,6 +892,26 @@ impl<T: TS> TS for Option<T> {
         <T as crate::TS>::visit_generics(v);
         v.visit::<T>();
     }
+
+    fn decl() -> String {
+        panic!("{} cannot be declared", <Self as crate::TS>::name())
+    }
+
+    fn decl_concrete() -> String {
+        panic!("{} cannot be declared", <Self as crate::TS>::name())
+    }
+
+    fn inline_flattened() -> String {
+        if <T as crate::TS>::IS_ENUM {
+            <T as crate::TS>::optional_inline_flattened()
+        } else {
+            <T as crate::TS>::inline_flattened()
+        }
+    }
+
+    fn optional_inline_flattened() -> String {
+        <T as crate::TS>::optional_inline_flattened()
+    }
 }
 
 impl<T: TS, E: TS> TS for Result<T, E> {
@@ -1052,6 +1078,10 @@ impl<K: TS, V: TS, H> TS for HashMap<K, V, H> {
     fn inline_flattened(cfg: &Config) -> String {
         format!("({})", Self::inline(cfg))
     }
+
+    fn optional_inline_flattened() -> String {
+        panic!("{} cannot be flattened", <Self as crate::TS>::name())
+    }
 }
 
 // TODO: replace manual impl with dummy struct & `impl_shadow` (like for `JsonValue`)
@@ -1081,6 +1111,10 @@ impl<I: TS> TS for Range<I> {
 
     fn inline(cfg: &Config) -> String {
         panic!("{} cannot be inlined", Self::name(cfg))
+    }
+
+    fn optional_inline_flattened() -> String {
+        panic!("{} cannot be flattened", <Self as crate::TS>::name())
     }
 }
 
@@ -1200,6 +1234,10 @@ impl TS for Dummy {
 
     fn inline(cfg: &Config) -> String {
         panic!("{} cannot be inlined", Self::name(cfg))
+    }
+
+    fn optional_inline_flattened() -> String {
+        panic!("{} cannot be flattened", <Self as crate::TS>::name())
     }
 }
 

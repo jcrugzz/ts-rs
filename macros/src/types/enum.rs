@@ -193,9 +193,11 @@ fn format_variant(
         (false, Tagged::Adjacently { tag, content }) => match &variant.fields {
             Fields::Unnamed(unnamed) if unnamed.unnamed.len() == 1 => {
                 let field = &unnamed.unnamed[0];
-                let field_attr = FieldAttr::from_attrs(&unnamed.unnamed[0].attrs)?;
+                let field_attr = FieldAttr::from_attrs(&field.attrs)?;
 
                 field_attr.assert_validity(field)?;
+
+                let field_ty = field_attr.type_as(&field.ty);
 
                 if field_attr.skip {
                     (
@@ -205,11 +207,9 @@ fn format_variant(
                 } else {
                     let ty = match field_attr.type_override {
                         Some(type_override) => quote!(#type_override),
-                        None => {
-                            let ty = field_attr.type_as(&field.ty);
-                            quote!(<#ty as #crate_rename::TS>::name(cfg))
-                        }
+                        None => quote!(<#field_ty as #crate_rename::TS>::name(cfg)),
                     };
+
                     (
                         quote!(
                             format!("{{ \"{}\": \"{}\", \"{}\": {} }}", #tag, #ts_name, #content, #ty)
@@ -234,9 +234,11 @@ fn format_variant(
             None => match &variant.fields {
                 Fields::Unnamed(unnamed) if unnamed.unnamed.len() == 1 => {
                     let field = &unnamed.unnamed[0];
-                    let field_attr = FieldAttr::from_attrs(&unnamed.unnamed[0].attrs)?;
+                    let field_attr = FieldAttr::from_attrs(&field.attrs)?;
 
                     field_attr.assert_validity(field)?;
+
+                    let field_ty = field_attr.type_as(&field.ty);
 
                     if field_attr.skip {
                         (
@@ -247,8 +249,7 @@ fn format_variant(
                         let ty = match field_attr.type_override {
                             Some(type_override) => quote! { #type_override },
                             None => {
-                                let ty = field_attr.type_as(&field.ty);
-                                quote!(<#ty as #crate_rename::TS>::name(cfg))
+                                quote!(<#field_ty as #crate_rename::TS>::name(cfg))
                             }
                         };
 

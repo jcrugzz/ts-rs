@@ -26,6 +26,7 @@ struct DerivedTS {
     docs: Vec<Expr>,
     inline: TokenStream,
     inline_flattened: Option<TokenStream>,
+    optional_inline_flattened: Option<TokenStream>,
     dependencies: Dependencies,
     concrete: HashMap<Ident, Type>,
     bound: Option<Vec<WherePredicate>>,
@@ -179,6 +180,7 @@ impl DerivedTS {
                     fn name(cfg: &#crate_rename::Config) -> String { stringify!(#generics).to_owned() }
                     fn inline(cfg: &#crate_rename::Config) -> String { panic!("{} cannot be inlined", #name) }
                     fn inline_flattened(cfg: &#crate_rename::Config) -> String { stringify!(#generics).to_owned() }
+                    fn optional_inline_flattened(cfg: &#crate_rename::Config) -> String { stringify!(#generics).to_owned() }
                     fn decl(cfg: &#crate_rename::Config) -> String { panic!("{} cannot be declared", #name) }
                     fn decl_concrete(cfg: &#crate_rename::Config) -> String { panic!("{} cannot be declared", #name) }
                 }
@@ -251,6 +253,13 @@ impl DerivedTS {
             }
         });
 
+        let optional_inline_flattened =
+            self.optional_inline_flattened.clone().unwrap_or_else(|| {
+                quote! {
+                    panic!("{} cannot be flattened", <Self as #crate_rename::TS>::name(cfg))
+                }
+            });
+
         let inline = match self.ts_enum {
             Some(Repr::Int) => quote! {
                 let variants = #inline.replace(|x: char| !x.is_numeric() && x != ',', "");
@@ -304,6 +313,10 @@ impl DerivedTS {
 
             fn inline_flattened(cfg: &#crate_rename::Config) -> String {
                 #inline_flattened
+            }
+
+            fn optional_inline_flattened(cfg: &#crate_rename::Config) -> String {
+                #optional_inline_flattened
             }
         }
     }
